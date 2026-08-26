@@ -52,10 +52,16 @@ app.add_middleware(
 # Static & Templates setup
 STATIC_DIR = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "app" / "templates"
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
-TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+try:
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False), name="static")
+
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 def serialize_persona(persona: Persona, db: Session) -> dict:
