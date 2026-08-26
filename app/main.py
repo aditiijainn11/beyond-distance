@@ -129,6 +129,8 @@ def serialize_message(msg: Message, db: Session) -> dict:
 
 # ================= PAGES =================
 @app.get("/")
+@app.get("/api/index")
+@app.get("/index")
 def home(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
