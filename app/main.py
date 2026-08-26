@@ -49,9 +49,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import HTMLResponse, Response
+
 # Static & Templates setup
 STATIC_DIR = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "app" / "templates"
+
+def resolve_file(rel_path: str) -> Optional[Path]:
+    """Find a file across possible root directories in local and serverless environments."""
+    candidates = [
+        BASE_DIR / rel_path,
+        Path(__file__).resolve().parent.parent / rel_path,
+        Path(__file__).resolve().parent / rel_path.replace("app/", ""),
+        Path.cwd() / rel_path,
+        Path("/var/task") / rel_path
+    ]
+    for p in candidates:
+        if p.exists() and p.is_file():
+            return p
+    return None
 
 try:
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
@@ -62,7 +78,19 @@ except Exception:
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False), name="static")
 
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+@app.get("/static/css/style.css")
+def serve_css():
+    file_path = resolve_file("static/css/style.css")
+    if file_path:
+        return Response(content=file_path.read_text(encoding="utf-8"), media_type="text/css")
+    return Response(content="", media_type="text/css")
+
+@app.get("/static/js/app.js")
+def serve_js():
+    file_path = resolve_file("static/js/app.js")
+    if file_path:
+        return Response(content=file_path.read_text(encoding="utf-8"), media_type="application/javascript")
+    return Response(content="", media_type="application/javascript")
 
 def serialize_persona(persona: Persona, db: Session) -> dict:
     try:
@@ -132,7 +160,10 @@ def serialize_message(msg: Message, db: Session) -> dict:
 @app.get("/api/index")
 @app.get("/index")
 def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    html_file = resolve_file("app/templates/index.html")
+    if html_file:
+        return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Beyond Distance</h1><p>Connection space active.</p>")
 
 # ================= PERSONAS =================
 @app.get("/api/personas")

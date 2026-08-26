@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -10,11 +11,14 @@ from app.database import init_db, SessionLocal
 from app.seed_data import seed_database
 from app.main import app
 
-# Initialize DB on cold start
+# Initialize DB on serverless cold start
 try:
     init_db()
     db = SessionLocal()
     seed_database(db)
     db.close()
 except Exception as e:
-    print(f"Warning during cold-start DB init: {e}")
+    print(f"Cold-start DB init note: {e}")
+
+# Expose both app and handler for Vercel ASGI bridge
+handler = app
